@@ -19,6 +19,10 @@
   <a href="CONTRIBUTING.md"><img alt="PRs" src="https://img.shields.io/badge/PRs-welcome-brightgreen"></a>
 </p>
 
+<p align="center">
+  📖 <b>New to this?</b> Read the <a href="docs/Sentinel-AI-Beginners-Guide.pdf">Complete Beginner's Guide (PDF)</a> — explains everything from scratch, no security background needed.
+</p>
+
 ---
 
 ## What is Sentinel AI?
