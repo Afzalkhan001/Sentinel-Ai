@@ -22,3 +22,6 @@ frontend/vite.config.d.ts
 .DS_Store
 Thumbs.db
 .claude/
+
+# PDFs (keep guides out of the repo)
+*.pdf
