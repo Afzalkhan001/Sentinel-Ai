@@ -6,12 +6,17 @@ import DashboardPage from "./pages/DashboardPage";
 import RedTeamPage from "./pages/RedTeamPage";
 import RepoScanPage from "./pages/RepoScanPage";
 import WebScanPage from "./pages/WebScanPage";
-import { GlobeIcon, LibraryIcon, ModelsIcon, RedTeamIcon, RepoIcon, ResultsIcon, ScanIcon, ShieldIcon } from "./components/icons";
+import HomePage from "./pages/HomePage";
+import { GlobeIcon, HomeIcon, LibraryIcon, ModelsIcon, RedTeamIcon, RepoIcon, ResultsIcon, ScanIcon, ShieldIcon } from "./components/icons";
 import type { ReactNode } from "react";
 
 type NavItem = { to: string; label: string; icon: ReactNode };
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/home", label: "Home", icon: <HomeIcon /> }],
+  },
   {
     label: "AI Models",
     items: [
@@ -92,6 +97,7 @@ function Sidebar() {
 }
 
 const TITLES: Record<string, string> = {
+  "/home": "Home",
   "/models": "Models",
   "/attacks": "Attack Library",
   "/run": "Model Scan",
@@ -125,7 +131,8 @@ export default function App() {
         <Topbar />
         <div key={pathname} className="max-w-6xl mx-auto px-8 py-8 animate-fade-up">
           <Routes>
-            <Route path="/" element={<Navigate to="/models" replace />} />
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/models" element={<ModelsPage />} />
             <Route path="/attacks" element={<AttackLibraryPage />} />
             <Route path="/run" element={<RunPage />} />

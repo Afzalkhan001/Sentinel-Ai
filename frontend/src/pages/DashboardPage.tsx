@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useRun, useRunResults, useRuns } from "../hooks/queries";
 import { CategoryBadge, PageHeader, RiskBadge, Section, VerdictBadge } from "../components/ui";
 import { OwaspBreakdown, ScoreGauge } from "../components/charts";
+import { downloadJson } from "../api/download";
 
 function RunsList() {
   const { data: runs, isLoading } = useRuns();
@@ -96,6 +97,7 @@ function ResultsTable({ runId }: { runId: string }) {
 
 function RunDetail({ runId }: { runId: string }) {
   const { data: run } = useRun(runId);
+  const { data: results } = useRunResults(runId, true);
   if (!run) return <div className="text-slate-500 text-sm">Loading…</div>;
 
   const running = run.status === "running";
@@ -107,7 +109,17 @@ function RunDetail({ runId }: { runId: string }) {
           <Link to="/runs" className="text-xs text-slate-500 hover:text-accent">← All scans</Link>
           <h1 className="text-[26px] font-extrabold tracking-tight text-white mt-1">{run.model_label}</h1>
         </div>
-        {run.risk_level && <RiskBadge risk={run.risk_level} />}
+        <div className="flex items-center gap-3">
+          {!running && (
+            <button
+              className="text-xs text-accent hover:text-sky-300 font-medium"
+              onClick={() => downloadJson(`sentinel-run-${run.id.slice(0, 8)}`, { run, results })}
+            >
+              ↓ Export JSON
+            </button>
+          )}
+          {run.risk_level && <RiskBadge risk={run.risk_level} />}
+        </div>
       </div>
 
       {run.status === "failed" && <div className="card p-4 text-danger text-sm">Scan failed: {run.error}</div>}

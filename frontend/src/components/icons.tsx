@@ -11,6 +11,14 @@ export function ShieldIcon({ className = base }: IconProps) {
   );
 }
 
+export function HomeIcon({ className = base }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />
+    </svg>
+  );
+}
+
 export function ModelsIcon({ className = base }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Finding, ScanResult } from "../api/types";
 import { RiskBadge, Section, SeverityBadge } from "./ui";
 import { ScoreGauge } from "./charts";
+import { downloadJson } from "../api/download";
 
 const SEV_COLORS: Record<string, string> = {
   critical: "border-l-danger",
@@ -103,7 +104,17 @@ export function ScanReport({ scan, target }: { scan: ScanResult; target: string 
         </Section>
       </div>
 
-      <Section title={`Findings (${findings.length})`}>
+      <Section
+        title={`Findings (${findings.length})`}
+        right={
+          <button
+            className="text-xs text-accent hover:text-sky-300 font-medium"
+            onClick={() => downloadJson(`sentinel-scan-${scan.id.slice(0, 8)}`, scan)}
+          >
+            ↓ Export JSON
+          </button>
+        }
+      >
         {findings.length === 0 ? (
           <div className="text-center py-8 text-ok">✓ No issues detected. Nice and clean!</div>
         ) : (
