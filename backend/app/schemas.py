@@ -88,6 +88,43 @@ class RunOut(BaseModel):
         from_attributes = True
 
 
+# ---- Repo / Web scans ----
+class RepoScanCreate(BaseModel):
+    repo_url: str
+    use_ai: bool = False
+    reviewer_model_id: str | None = None
+
+
+class WebScanCreate(BaseModel):
+    target_url: str
+    authorized: bool = False
+    use_ai: bool = False
+    reviewer_model_id: str | None = None
+
+
+class ScanOut(BaseModel):
+    id: str
+    status: str
+    score: int | None = None
+    risk_level: str | None = None
+    total_findings: int = 0
+    severity_counts: dict | None = None
+    category_breakdown: list | None = None
+    findings: list | None = None
+    stats: dict | None = None
+    error: str | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+    # target fields (one will be set depending on scan type)
+    repo_url: str | None = None
+    target_url: str | None = None
+    use_ai: bool = False
+    authorized: bool = False
+
+    class Config:
+        from_attributes = True
+
+
 # ---- Red Team ----
 class RedTeamCreate(BaseModel):
     target_model_id: str

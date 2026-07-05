@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import SessionLocal, init_db
 from .models_db import RegisteredModel
-from .routers import attacks, models, redteam, runs
+from .routers import attacks, models, redteam, runs, scans
 
 
 def _seed_default_model() -> None:
@@ -50,6 +50,7 @@ app.include_router(models.router)
 app.include_router(attacks.router)
 app.include_router(runs.router)
 app.include_router(redteam.router)
+app.include_router(scans.router)
 
 
 @app.get("/api/health", tags=["health"])

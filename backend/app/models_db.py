@@ -72,6 +72,45 @@ class RedTeamSession(Base):
     completed_at = Column(DateTime, nullable=True)
 
 
+class RepoScan(Base):
+    __tablename__ = "repo_scans"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    repo_url = Column(String, nullable=False)
+    use_ai = Column(Boolean, default=False)
+    status = Column(String, default="running")  # running|completed|failed
+    score = Column(Integer, nullable=True)
+    risk_level = Column(String, nullable=True)
+    total_findings = Column(Integer, default=0)
+    severity_counts = Column(JSON, nullable=True)
+    category_breakdown = Column(JSON, nullable=True)
+    findings = Column(JSON, nullable=True)
+    stats = Column(JSON, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class WebScan(Base):
+    __tablename__ = "web_scans"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    target_url = Column(String, nullable=False)
+    authorized = Column(Boolean, default=False)
+    use_ai = Column(Boolean, default=False)
+    status = Column(String, default="running")  # running|completed|failed
+    score = Column(Integer, nullable=True)
+    risk_level = Column(String, nullable=True)
+    total_findings = Column(Integer, default=0)
+    severity_counts = Column(JSON, nullable=True)
+    category_breakdown = Column(JSON, nullable=True)
+    findings = Column(JSON, nullable=True)
+    stats = Column(JSON, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now)
+    completed_at = Column(DateTime, nullable=True)
+
+
 class Result(Base):
     __tablename__ = "results"
 

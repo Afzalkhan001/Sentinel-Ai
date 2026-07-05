@@ -97,6 +97,39 @@ export interface Result {
   error: string | null;
 }
 
+export interface Finding {
+  id: string;
+  title: string;
+  severity: "low" | "medium" | "high" | "critical";
+  category: string;
+  owasp: string;
+  location: string;
+  line: number | null;
+  evidence: string;
+  description: string;
+  recommendation: string;
+  source: "rule" | "ai";
+}
+
+export interface ScanResult {
+  id: string;
+  status: "running" | "completed" | "failed";
+  score: number | null;
+  risk_level: string | null;
+  total_findings: number;
+  severity_counts: { critical: number; high: number; medium: number; low: number } | null;
+  category_breakdown: { category: string; count: number }[] | null;
+  findings: Finding[] | null;
+  stats: Record<string, unknown> | null;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+  repo_url?: string | null;
+  target_url?: string | null;
+  use_ai: boolean;
+  authorized: boolean;
+}
+
 export interface RedTeamRound {
   round: number;
   strategy: string;

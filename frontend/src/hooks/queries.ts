@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { Attack, Model, ModelCreate, ModelTestResult, RedTeamSession, Result, Run } from "../api/types";
+import type { Attack, Model, ModelCreate, ModelTestResult, RedTeamSession, Result, Run, ScanResult } from "../api/types";
 
 // ---- Models ----
 export function useModels() {
@@ -81,5 +81,41 @@ export function useCreateRedTeam() {
   return useMutation({
     mutationFn: (body: { target_model_id: string; objective: string; max_rounds?: number; attacker_model_id?: string }) =>
       api.post<RedTeamSession>("/redteam", body),
+  });
+}
+
+// ---- Repo / Web scanners ----
+function scanHooks(kind: "repo" | "web") {
+  return {
+    useList: () => useQuery({ queryKey: [`${kind}-scans`], queryFn: () => api.get<ScanResult[]>(`/scan/${kind}`) }),
+    useOne: (id: string | undefined) =>
+      useQuery({
+        queryKey: [`${kind}-scan`, id],
+        queryFn: () => api.get<ScanResult>(`/scan/${kind}/${id}`),
+        enabled: !!id,
+        refetchInterval: (q) => (q.state.data?.status === "running" ? 1500 : false),
+      }),
+  };
+}
+
+const repo = scanHooks("repo");
+const web = scanHooks("web");
+
+export const useRepoScans = repo.useList;
+export const useRepoScan = repo.useOne;
+export const useWebScans = web.useList;
+export const useWebScan = web.useOne;
+
+export function useCreateRepoScan() {
+  return useMutation({
+    mutationFn: (body: { repo_url: string; use_ai?: boolean; reviewer_model_id?: string }) =>
+      api.post<ScanResult>("/scan/repo", body),
+  });
+}
+
+export function useCreateWebScan() {
+  return useMutation({
+    mutationFn: (body: { target_url: string; authorized?: boolean; use_ai?: boolean; reviewer_model_id?: string }) =>
+      api.post<ScanResult>("/scan/web", body),
   });
 }

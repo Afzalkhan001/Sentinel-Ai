@@ -5,9 +5,9 @@
 <h1 align="center">🛡️ Sentinel AI</h1>
 
 <p align="center">
-  <b>The open-source security testing platform for Large Language Models.</b><br/>
-  Automatically probe any LLM or AI app for prompt injection, jailbreaks, data leakage,
-  toxicity, and misuse — then get a security score, OWASP mapping, and fixes.
+  <b>The open-source, AI-powered security testing platform.</b><br/>
+  Test <b>LLMs</b>, <b>GitHub repos</b>, and <b>live websites</b> for vulnerabilities — then get a
+  security score, OWASP mapping, and concrete fixes for each.
 </p>
 
 <p align="center">
@@ -23,20 +23,28 @@
 
 ## What is Sentinel AI?
 
-LLMs shipped into products are vulnerable to a growing arsenal of attacks — **prompt injection,
-jailbreaks, PII leakage, toxic output, tool misuse, hallucination**. Sentinel AI is a
-**"Burp Suite for LLMs"**: point it at a model (or your own deployed chatbot endpoint), run a
-battery of adversarial tests, and get a clear, actionable security report before you ship.
+Modern products ship AI models, code, and web apps fast — and each one carries security risk.
+Sentinel AI is one platform that tests all three, with a shared dashboard and OWASP mapping.
 
-- 🎯 **Test any model** — OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, OpenRouter,
-  Ollama, HuggingFace — **or your own app endpoint** (custom URL + headers + body template).
-- 🧪 **51 built-in attacks** across **8 categories**, each mapped to the **OWASP LLM Top 10**.
+### Three scanners, one platform
+
+| Scanner | Give it… | It finds… |
+|---------|----------|-----------|
+| 🧠 **LLM / Model** | a model API key or your app endpoint | prompt injection, jailbreaks, PII leakage, toxicity, tool misuse, hallucination |
+| 📦 **GitHub Repo** | a public repo URL | hardcoded secrets, dangerous code patterns (eval, `shell=True`, pickle, weak crypto…), config/dependency hygiene |
+| 🌐 **Website** | a URL | missing security headers, weak TLS/cookies, exposed `/.git` `/.env`, info leaks, and — when authorized — safe reflected-XSS & SQL-injection probes |
+
+Every scanner produces the same output: a **0–100 security score**, risk level, findings grouped by
+severity with file/line or URL + evidence + a fix, and an **optional AI deep-review** pass that sends
+findings to your registered LLM for extra insight.
+
+- 🎯 **Test any model** — OpenAI, Claude, Gemini, Groq, DeepSeek, OpenRouter, Ollama, HuggingFace —
+  **or your own app endpoint** (custom URL + headers + body template).
+- 🧪 **51 built-in LLM attacks** across **8 categories**, mapped to the **OWASP LLM Top 10**.
 - 🤖 **Autonomous Red Team Agent** — an attacker LLM that *plans, generates, and adapts*
-  jailbreaks round-by-round until it breaches the target or runs out of moves.
-- 📊 **Security dashboard** — 0–100 score, attack-success %, risk level, OWASP breakdown,
-  and rule-based remediation recommendations.
-- 🔐 **Keys never touch disk** — API keys live in an in-memory vault; all model calls are made
-  server-side (no CORS, no key exposure in the browser).
+  jailbreaks round-by-round until it breaches the target.
+- 🔐 **Safe by design** — API keys live in an in-memory vault; website active probes are
+  **authorized-only and non-destructive** (no exploitation, no DoS).
 
 <p align="center">
   <img src="docs/dashboard-preview.svg" alt="Sentinel AI dashboard" width="92%" />
@@ -232,6 +240,10 @@ in-memory vault. Sentinel then runs every attack — and the Red Team Agent — 
 | `GET` | `/api/runs/{id}/results` | Per-attack results |
 | `POST` | `/api/redteam` | Launch a red-team session `{target_model_id, objective, max_rounds}` |
 | `GET` | `/api/redteam` · `/api/redteam/{id}` | List / poll sessions |
+| `POST` | `/api/scan/repo` | Scan a GitHub repo `{repo_url, use_ai?, reviewer_model_id?}` |
+| `GET` | `/api/scan/repo` · `/api/scan/repo/{id}` | List / poll repo scans |
+| `POST` | `/api/scan/web` | Scan a website `{target_url, authorized?, use_ai?}` |
+| `GET` | `/api/scan/web` · `/api/scan/web/{id}` | List / poll website scans |
 
 Full interactive docs at `/docs` when the backend is running.
 
