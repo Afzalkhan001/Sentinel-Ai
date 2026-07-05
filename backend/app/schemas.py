@@ -65,7 +65,9 @@ class AttackOut(BaseModel):
 class RunCreate(BaseModel):
     model_id: str
     attack_ids: list[str] | None = None  # None or empty => all attacks
-    use_llm_judge: bool = False
+    use_llm_judge: bool = False          # LLM-judge tie-breaker on ambiguous verdicts
+    samples: int = 1                     # run each attack N times and vote (reliability mode)
+    judge_model_id: str | None = None    # which model judges (defaults to the target)
 
 
 class RunOut(BaseModel):
@@ -77,6 +79,7 @@ class RunOut(BaseModel):
     completed_at: datetime | None = None
     total: int
     succeeded_count: int
+    inconclusive_count: int | None = 0
     score: int | None = None
     risk_level: str | None = None
     attack_success_pct: int | None = None

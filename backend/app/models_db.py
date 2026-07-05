@@ -43,6 +43,7 @@ class Run(Base):
 
     total = Column(Integer, default=0)
     succeeded_count = Column(Integer, default=0)
+    inconclusive_count = Column(Integer, default=0)
     score = Column(Integer, nullable=True)
     risk_level = Column(String, nullable=True)
     owasp_breakdown = Column(JSON, nullable=True)

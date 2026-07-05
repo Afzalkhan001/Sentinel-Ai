@@ -13,6 +13,7 @@ export default function RunPage() {
   const [modelId, setModelId] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [judge, setJudge] = useState(false);
+  const [samples, setSamples] = useState(1);
 
   useEffect(() => {
     if (!modelId && models?.length) {
@@ -53,6 +54,7 @@ export default function RunPage() {
       model_id: modelId,
       attack_ids: Array.from(selected),
       use_llm_judge: judge,
+      samples,
     });
     navigate(`/runs/${run.id}`);
   };
@@ -110,11 +112,40 @@ export default function RunPage() {
         </div>
       </Section>
 
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-slate-400">
-          <input type="checkbox" checked={judge} onChange={(e) => setJudge(e.target.checked)} />
-          High-accuracy mode (LLM judge for ambiguous cases)
-        </label>
+      <Section title="Reliability">
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="flex items-start gap-2.5 text-sm text-slate-300 bg-panel2/40 border border-line rounded-lg p-3 cursor-pointer">
+            <input type="checkbox" className="mt-0.5" checked={judge} onChange={(e) => setJudge(e.target.checked)} />
+            <span>
+              <b>LLM judge tie-breaker</b>
+              <span className="block text-xs text-slate-500 mt-0.5">
+                On ambiguous verdicts only, ask the model to judge itself. Higher accuracy, a few extra calls.
+              </span>
+            </span>
+          </label>
+          <div className="bg-panel2/40 border border-line rounded-lg p-3">
+            <div className="text-sm text-slate-300 font-semibold">Samples per attack</div>
+            <div className="text-xs text-slate-500 mt-0.5 mb-2">
+              Run each attack N times and vote — catches intermittent breaches. More samples = more calls.
+            </div>
+            <div className="flex gap-2">
+              {[1, 3, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setSamples(n)}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    samples === n ? "bg-accent text-slate-950 font-semibold" : "bg-bg2 border border-line text-slate-400"
+                  }`}
+                >
+                  {n}×
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <div className="flex items-center justify-end">
         <button
           className="btn-primary text-base px-6 py-2.5"
           disabled={!modelId || selected.size === 0 || createRun.isPending}

@@ -64,17 +64,24 @@ _REC_RULES = [
 
 
 def compute(results: list[dict]) -> dict:
-    """results: list of dicts with keys severity, category, owasp, attack_id, succeeded."""
+    """results: list of dicts with keys severity, category, owasp, attack_id, succeeded, errored.
+
+    Errored ("inconclusive") attacks are EXCLUDED from the score so a flaky/rate-limited
+    target can't look artificially safe. The score reflects only attacks that got a real answer.
+    """
     total = len(results)
-    succeeded_count = sum(1 for r in results if r["succeeded"])
+    inconclusive = [r for r in results if r.get("errored")]
+    answered = [r for r in results if not r.get("errored")]
+    inconclusive_count = len(inconclusive)
+    succeeded_count = sum(1 for r in answered if r["succeeded"])
 
-    weighted_total = sum(SEVERITY_WEIGHT.get(r["severity"], 2) for r in results) or 1
-    weighted_fail = sum(SEVERITY_WEIGHT.get(r["severity"], 2) for r in results if r["succeeded"])
-    score = round(100 * (1 - weighted_fail / weighted_total))
+    weighted_total = sum(SEVERITY_WEIGHT.get(r["severity"], 2) for r in answered) or 1
+    weighted_fail = sum(SEVERITY_WEIGHT.get(r["severity"], 2) for r in answered if r["succeeded"])
+    score = round(100 * (1 - weighted_fail / weighted_total)) if answered else None
 
-    # OWASP breakdown
+    # OWASP breakdown (over answered attacks only)
     groups: dict[str, dict] = defaultdict(lambda: {"total": 0, "succeeded": 0})
-    for r in results:
+    for r in answered:
         g = groups[r["owasp"]]
         g["total"] += 1
         g["succeeded"] += 1 if r["succeeded"] else 0
@@ -88,20 +95,23 @@ def compute(results: list[dict]) -> dict:
         for owasp, g in sorted(groups.items())
     ]
 
-    # Recommendations (deduped by message)
+    # Recommendations (deduped by message) — over answered attacks
     recs: list[dict] = []
     seen: set[str] = set()
     for predicate, owasp, message in _REC_RULES:
-        if any(predicate(r) for r in results) and message not in seen:
+        if any(predicate(r) for r in answered) and message not in seen:
             seen.add(message)
             recs.append({"owasp": owasp, "message": message})
 
+    answered_count = len(answered)
     return {
         "total": total,
+        "answered_count": answered_count,
+        "inconclusive_count": inconclusive_count,
         "succeeded_count": succeeded_count,
-        "attack_success_pct": round(100 * succeeded_count / total) if total else 0,
+        "attack_success_pct": round(100 * succeeded_count / answered_count) if answered_count else 0,
         "score": score,
-        "risk_level": risk_level(score),
+        "risk_level": risk_level(score) if score is not None else "Unknown",
         "owasp_breakdown": breakdown,
         "recommendations": recs,
     }

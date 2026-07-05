@@ -12,8 +12,9 @@ router = APIRouter(prefix="/api/runs", tags=["runs"])
 
 def _to_run_out(run: Run) -> RunOut:
     out = RunOut.model_validate(run)
-    if run.total:
-        out.attack_success_pct = round(100 * run.succeeded_count / run.total)
+    answered = (run.total or 0) - (run.inconclusive_count or 0)
+    if answered > 0:
+        out.attack_success_pct = round(100 * run.succeeded_count / answered)
     return out
 
 
@@ -33,6 +34,13 @@ def create_run(payload: RunCreate, background: BackgroundTasks, db: Session = De
     if not cfg.get("api_key") and model.provider != "ollama":
         raise HTTPException(400, "No API key available for this model. Re-register it with a key.")
 
+    # judge model for the LLM tie-breaker (defaults to the target model)
+    judge_cfg = None
+    if payload.use_llm_judge:
+        judge_model = db.get(RegisteredModel, payload.judge_model_id) if payload.judge_model_id else model
+        judge_cfg = resolve_provider_cfg(judge_model) if judge_model else None
+
+    samples = max(1, min(payload.samples, 5))
     run = Run(
         model_id=model.id,
         model_label=f"{model.name} ({model.model_name})",
@@ -43,7 +51,7 @@ def create_run(payload: RunCreate, background: BackgroundTasks, db: Session = De
     db.commit()
     db.refresh(run)
 
-    background.add_task(execute_run, run.id, cfg, attack_ids)
+    background.add_task(execute_run, run.id, cfg, attack_ids, payload.use_llm_judge, samples, judge_cfg)
     return _to_run_out(run)
 
 

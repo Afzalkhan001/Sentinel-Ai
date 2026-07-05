@@ -58,8 +58,12 @@ export function useRunResults(id: string | undefined, enabled: boolean) {
 
 export function useCreateRun() {
   return useMutation({
-    mutationFn: (body: { model_id: string; attack_ids?: string[]; use_llm_judge?: boolean }) =>
-      api.post<Run>("/runs", body),
+    mutationFn: (body: {
+      model_id: string;
+      attack_ids?: string[];
+      use_llm_judge?: boolean;
+      samples?: number;
+    }) => api.post<Run>("/runs", body),
   });
 }
 

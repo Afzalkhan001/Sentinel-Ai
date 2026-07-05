@@ -21,6 +21,7 @@ def init_db() -> None:
 # tables, so we add any missing ones here (idempotent).
 _MIGRATIONS = [
     ("registered_models", "request_config", "JSON"),
+    ("runs", "inconclusive_count", "INTEGER DEFAULT 0"),
 ]
 
 

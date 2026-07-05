@@ -73,6 +73,7 @@ export interface Run {
   completed_at: string | null;
   total: number;
   succeeded_count: number;
+  inconclusive_count: number;
   score: number | null;
   risk_level: string | null;
   attack_success_pct: number | null;

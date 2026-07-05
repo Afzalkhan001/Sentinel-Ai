@@ -59,6 +59,12 @@ function ResultsTable({ runId }: { runId: string }) {
           >
             <VerdictBadge succeeded={r.succeeded} error={r.error} />
             <span className="flex-1 text-sm text-slate-200">{r.attack_name}</span>
+            {!r.error && r.confidence != null && r.confidence < 0.65 && (
+              <span className="badge bg-amber-500/15 text-amber-300" title="Ambiguous verdict — review manually">
+                low confidence
+              </span>
+            )}
+            {r.detection_method === "llm-judge" && <span className="badge bg-accent2/15 text-indigo-300">AI-judged</span>}
             {r.category && <CategoryBadge category={r.category} />}
             <span className="text-xs text-slate-500 font-mono hidden lg:inline">{r.owasp}</span>
             <span className="text-xs text-slate-600">{r.latency_ms}ms</span>
@@ -115,19 +121,31 @@ function RunDetail({ runId }: { runId: string }) {
         <>
           <div className="grid grid-cols-3 gap-4">
             <Section title="Security Score">
-              <div className="flex justify-center">
-                <ScoreGauge score={run.score ?? 0} />
-              </div>
+              {run.score == null ? (
+                <div className="flex flex-col items-center justify-center h-40 text-center">
+                  <span className="text-4xl font-extrabold text-slate-500">N/A</span>
+                  <span className="text-xs text-slate-500 mt-2">No attacks returned a usable answer.</span>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <ScoreGauge score={run.score} />
+                </div>
+              )}
             </Section>
             <Section title="Attack Success">
               <div className="flex flex-col items-center justify-center h-40">
                 <span className="text-5xl font-extrabold tracking-tight text-danger drop-shadow-[0_2px_12px_rgba(244,63,94,0.35)]">
                   {run.attack_success_pct ?? 0}%
                 </span>
-                <span className="text-sm text-slate-500 mt-3">
-                  <span className="text-slate-300 font-semibold">{run.succeeded_count}</span> of {run.total} attacks
-                  breached
+                <span className="text-sm text-slate-500 mt-3 text-center">
+                  <span className="text-slate-300 font-semibold">{run.succeeded_count}</span> of{" "}
+                  {run.total - run.inconclusive_count} answered attacks breached
                 </span>
+                {run.inconclusive_count > 0 && (
+                  <span className="badge bg-slate-600/30 text-slate-400 mt-2">
+                    {run.inconclusive_count} inconclusive (excluded)
+                  </span>
+                )}
               </div>
             </Section>
             <Section title="OWASP LLM Breakdown">

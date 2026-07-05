@@ -8,6 +8,7 @@ Optionally sends suspicious source to a registered LLM for a deeper AI review.
 """
 import asyncio
 import json
+import math
 import os
 import re
 import shutil
@@ -15,10 +16,16 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 
+import httpx
+
 from ..db import SessionLocal
 from ..models_db import RepoScan
 from ..providers.registry import get_provider
 from .findings import finding, score_findings
+
+PLACEHOLDER_TOKENS = ("changeme", "your_", "yourkey", "your-key", "xxxxx", "placeholder",
+                      "<", "***", "...", "todo", "dummy", "redacted", "n/a", "none",
+                      "insert_", "example.com", "foo", "bar")
 
 # ---- scan limits ----
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__",
@@ -102,7 +109,7 @@ def _scan_tree(root: str) -> tuple[list[dict], dict]:
         is_example = any(x in rel.lower() for x in ("example", "sample", ".dist", "template", "test"))
         for sid, title, sev, pat in SECRET_RULES:
             for m in re.finditer(pat, text):
-                if is_example and sid == "generic-secret":
+                if sid == "generic-secret" and (is_example or _looks_placeholder(m.group(0))):
                     continue
                 ln = text[: m.start()].count("\n") + 1
                 findings.append(finding(
@@ -142,6 +149,24 @@ def _redact(s: str) -> str:
     return s[:6] + "…" + s[-4:] if len(s) > 14 else s[:4] + "…"
 
 
+def _entropy(s: str) -> float:
+    if not s:
+        return 0.0
+    counts = {c: s.count(c) for c in set(s)}
+    return -sum((n / len(s)) * math.log2(n / len(s)) for n in counts.values())
+
+
+def _looks_placeholder(match: str) -> bool:
+    """True if a generic 'password=...' match is clearly a placeholder / not a real secret."""
+    low = match.lower()
+    if any(tok in low for tok in PLACEHOLDER_TOKENS):
+        return True
+    q = re.search(r"['\"]([^'\"]+)['\"]", match)
+    val = q.group(1) if q else match
+    # very low entropy short values (e.g. "aaaaaa", "123456") are unlikely real secrets
+    return len(val) < 8 and _entropy(val) < 2.0
+
+
 def _config_checks(root: str) -> list[dict]:
     out = []
     has = lambda p: os.path.exists(os.path.join(root, p))
@@ -161,7 +186,30 @@ def _config_checks(root: str) -> list[dict]:
     return out
 
 
-def _clone_and_scan(repo_url: str) -> tuple[list[dict], dict]:
+def _parse_deps(root: str) -> list[tuple[str, str, str]]:
+    """Return (ecosystem, name, version) for pinned dependencies we can CVE-check."""
+    deps: list[tuple[str, str, str]] = []
+    req = os.path.join(root, "requirements.txt")
+    if os.path.exists(req):
+        for line in open(req, encoding="utf-8", errors="ignore"):
+            m = re.match(r"\s*([A-Za-z0-9._-]+)\s*==\s*([0-9][\w.\-]*)", line)
+            if m:
+                deps.append(("PyPI", m.group(1), m.group(2)))
+    pkg = os.path.join(root, "package.json")
+    if os.path.exists(pkg):
+        try:
+            data = json.load(open(pkg, encoding="utf-8", errors="ignore"))
+            for section in ("dependencies", "devDependencies"):
+                for name, ver in (data.get(section) or {}).items():
+                    v = re.sub(r"^[\^~>=<\s]+", "", str(ver))
+                    if re.match(r"^\d", v):
+                        deps.append(("npm", name, v))
+        except Exception:  # noqa: BLE001
+            pass
+    return deps[:80]
+
+
+def _clone_and_scan(repo_url: str) -> tuple[list[dict], dict, list]:
     tmp = tempfile.mkdtemp(prefix="sentinel_repo_")
     try:
         proc = subprocess.run(
@@ -172,10 +220,45 @@ def _clone_and_scan(repo_url: str) -> tuple[list[dict], dict]:
             raise RuntimeError(f"git clone failed: {proc.stderr.strip()[:200]}")
         findings, stats = _scan_tree(tmp)
         findings += _config_checks(tmp)
+        deps = _parse_deps(tmp)
         stats["languages"] = sorted(stats["languages"])
-        return findings, stats
+        stats["dependencies"] = len(deps)
+        return findings, stats, deps
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+async def _dependency_cves(deps: list[tuple[str, str, str]]) -> list[dict]:
+    """Query OSV.dev (free, no key) for known vulnerabilities in pinned dependencies."""
+    out: list[dict] = []
+    if not deps:
+        return out
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        async def one(eco, name, ver):
+            try:
+                r = await client.post("https://api.osv.dev/v1/query",
+                                      json={"version": ver, "package": {"name": name, "ecosystem": eco}})
+                if r.status_code != 200:
+                    return None
+                vulns = r.json().get("vulns") or []
+                if not vulns:
+                    return None
+                ids = ", ".join(v.get("id", "") for v in vulns[:4])
+                sev = "critical" if any("CRITICAL" in json.dumps(v.get("severity", "")) for v in vulns) else "high"
+                return finding(
+                    id=f"dep-cve-{name}", title=f"Vulnerable dependency: {name}@{ver}", severity=sev,
+                    category="Dependencies", owasp="A06:VulnerableComponents", location=f"{eco}:{name}",
+                    evidence=f"{len(vulns)} known advisory(ies): {ids}",
+                    description=f"{name}@{ver} has {len(vulns)} known security advisory(ies) in the OSV database.",
+                    recommendation=f"Upgrade {name} to a patched version and run a dependency audit.")
+            except Exception:  # noqa: BLE001
+                return None
+        sem = asyncio.Semaphore(10)
+        async def guarded(d):
+            async with sem:
+                return await one(*d)
+        results = await asyncio.gather(*[guarded(d) for d in deps])
+    return [r for r in results if r]
 
 
 AI_SYSTEM = (
@@ -229,7 +312,11 @@ def _extract_json(text: str) -> dict:
 
 async def scan_repo(scan_id: str, repo_url: str, use_ai: bool, reviewer_cfg: dict | None) -> None:
     try:
-        findings, stats = await asyncio.to_thread(_clone_and_scan, repo_url)
+        findings, stats, deps = await asyncio.to_thread(_clone_and_scan, repo_url)
+        try:
+            findings += await _dependency_cves(deps)
+        except Exception:  # noqa: BLE001
+            pass
         if use_ai and reviewer_cfg and reviewer_cfg.get("api_key"):
             try:
                 findings += await _ai_review(reviewer_cfg, repo_url, findings)
