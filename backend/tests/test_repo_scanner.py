@@ -9,8 +9,9 @@ def write(tmp_path, rel, content):
 
 
 def test_detects_secrets_and_patterns(tmp_path):
+    aws = "AKIA" + "1234567890ABCDEF"  # concatenated so the literal isn't in source
     write(tmp_path, "src/app.py", (
-        'AWS = "AKIAIOSFODNN7EXAMPLE"\n'
+        f'AWS = "{aws}"\n'
         'password = "supersecret123"\n'
         'import os, pickle\n'
         'os.system(cmd)\n'

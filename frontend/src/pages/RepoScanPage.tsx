@@ -96,7 +96,9 @@ function Detail({ id }: { id: string }) {
         <Link to="/repo" className="text-xs text-slate-500 hover:text-accent">← All repo scans</Link>
         <h1 className="text-[26px] font-extrabold tracking-tight text-white mt-1 font-mono break-all">{scan.repo_url}</h1>
         <p className="text-slate-500 text-xs mt-1">
-          {(scan.stats as { files?: number })?.files ?? "?"} files scanned
+          {(scan.stats as { files?: number })?.files ?? "?"} files ·{" "}
+          {(scan.stats as { commits_scanned?: number })?.commits_scanned ?? "?"} commits of history ·{" "}
+          {(scan.stats as { dependencies?: number })?.dependencies ?? 0} deps checked
         </p>
       </div>
       <ScanReport scan={scan} target={scan.repo_url ?? "repository"} />
