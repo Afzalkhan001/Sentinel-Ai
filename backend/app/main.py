@@ -1,12 +1,17 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import SessionLocal, init_db
 from .models_db import RegisteredModel
 from .routers import attacks, models, redteam, runs, scans
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 
 def _seed_default_model() -> None:
@@ -56,3 +61,18 @@ app.include_router(scans.router)
 @app.get("/api/health", tags=["health"])
 def health():
     return {"status": "ok", "default_key_set": bool(settings.groq_api_key)}
+
+
+# ---- Serve the built React app (production single-container) ----
+# In dev this dir doesn't exist and the Vite server + /api proxy are used instead.
+if os.path.isdir(STATIC_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str):
+        # API/docs routes are registered earlier and take precedence; this only
+        # catches front-end paths. Serve real files, else index.html (SPA routing).
+        candidate = os.path.join(STATIC_DIR, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))

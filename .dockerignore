@@ -1,0 +1,21 @@
+# Python
+**/__pycache__/
+**/*.pyc
+backend/.venv/
+backend/*.db
+**/.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+**/*.tsbuildinfo
+
+# Git / editors / docs
+.git/
+.github/
+.claude/
+.vscode/
+.idea/
+docs/
+*.pdf
+tests/

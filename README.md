@@ -179,6 +179,32 @@ The Vite dev server proxies `/api` → `http://localhost:8000`, so you only open
 
 ---
 
+## 🚀 Deploy (one container)
+
+For production, Sentinel ships as a **single Docker image**: the React app is built and served by
+FastAPI on the same origin, so the API and UI share one port — no CORS, no separate frontend host.
+
+```bash
+# build + run with docker compose (persists scan history in a volume)
+GROQ_API_KEY=your_key docker compose up --build
+#            ↑ optional — enables the built-in default model; users can also add keys in the UI
+```
+
+Then open **http://localhost:8000**. Or with plain Docker:
+
+```bash
+docker build -t sentinel-ai .
+docker run -p 8000:8000 -e GROQ_API_KEY=your_key sentinel-ai
+```
+
+Deploys as-is to any container host (Render, Railway, Fly.io, Cloud Run, a VPS). Set the `PORT` env
+var if the platform injects one; `GROQ_API_KEY` is optional.
+
+**First run:** a welcome popup guides new users to paste an API key (with links to get a free one) so
+they can start testing immediately. Keys are held in memory only — never written to disk.
+
+---
+
 ## 🎮 Using It
 
 1. **Models** → *+ Add Model*. Pick a provider (e.g. `openai`, model `gpt-4o-mini`), paste your API

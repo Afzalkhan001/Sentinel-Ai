@@ -8,7 +8,9 @@ import RepoScanPage from "./pages/RepoScanPage";
 import WebScanPage from "./pages/WebScanPage";
 import HomePage from "./pages/HomePage";
 import { GlobeIcon, HomeIcon, LibraryIcon, ModelsIcon, RedTeamIcon, RepoIcon, ResultsIcon, ScanIcon, ShieldIcon } from "./components/icons";
-import type { ReactNode } from "react";
+import { WelcomeModal } from "./components/WelcomeModal";
+import { useModels } from "./hooks/queries";
+import { useState, type ReactNode } from "react";
 
 type NavItem = { to: string; label: string; icon: ReactNode };
 
@@ -107,7 +109,7 @@ const TITLES: Record<string, string> = {
   "/web": "Website Scanner",
 };
 
-function Topbar() {
+function Topbar({ needsKey, onOpenWelcome }: { needsKey: boolean; onOpenWelcome: () => void }) {
   const { pathname } = useLocation();
   const key = Object.keys(TITLES).find((k) => pathname.startsWith(k)) ?? "/models";
   return (
@@ -115,7 +117,16 @@ function Topbar() {
       <div className="text-xs text-slate-500">
         Sentinel <span className="text-slate-700">/</span> <span className="text-slate-300">{TITLES[key]}</span>
       </div>
-      <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-500">
+      <div className="ml-auto flex items-center gap-3 text-[11px] text-slate-500">
+        {needsKey && (
+          <button
+            onClick={onOpenWelcome}
+            className="badge bg-warn/15 text-warn hover:bg-warn/25 transition-colors"
+            title="Add an API key to enable model testing"
+          >
+            ⚠ Add API key
+          </button>
+        )}
         <span className="badge bg-accent/10 text-accent">AI Security Platform</span>
       </div>
     </header>
@@ -124,11 +135,17 @@ function Topbar() {
 
 export default function App() {
   const { pathname } = useLocation();
+  const { data: models } = useModels();
+  // "needs key" = no registered model has a stored key yet (nothing usable set up)
+  const needsKey = !!models && !models.some((m) => m.key_last4);
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("sentinel_welcomed"));
+
   return (
     <div className="flex h-full">
+      {showWelcome && needsKey && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
-        <Topbar />
+        <Topbar needsKey={needsKey} onOpenWelcome={() => setShowWelcome(true)} />
         <div key={pathname} className="max-w-6xl mx-auto px-8 py-8 animate-fade-up">
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
