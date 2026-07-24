@@ -49,9 +49,22 @@ export function WelcomeModal({ onClose }: { onClose: () => void }) {
   const busy = create.isPending || test.isPending;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="card w-full max-w-lg p-6 animate-fade-up">
-        <div className="flex items-center gap-3 mb-1">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={skip}
+    >
+      <div className="card relative w-full max-w-lg p-6 animate-fade-up" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={skip}
+          aria-label="Close"
+          title="Close"
+          className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-lg text-slate-500 hover:text-white hover:bg-panel2 transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-3 mb-1 pr-8">
           <div className="grid place-items-center w-10 h-10 rounded-xl bg-accent-grad text-slate-950">
             <ShieldIcon className="w-6 h-6" />
           </div>
